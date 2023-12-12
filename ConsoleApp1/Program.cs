@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ConsoleApp1;
+using System;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
 using System.Text;
 
@@ -180,7 +182,7 @@ public class Register
             }
 
             PrintPrompt("Quantity: ");
-            int quantity = 0;
+            int quantity;
             try
             {
                 quantity = int.Parse(ReadInput());
@@ -193,7 +195,7 @@ public class Register
             }
 
             PrintPrompt("Price per unit: ");
-            float ppu = 0;
+            float ppu;
             try 
             {
                 ppu = float.Parse(ReadInput());
@@ -223,7 +225,7 @@ public class Register
         PrintPrompt("Please select an item to delete and write its index: ");
         while (true)
         {
-            int index = 0;
+            int index;
             try
             {
                 index = int.Parse(ReadInput());
@@ -304,26 +306,52 @@ public class Register
 public class Invoice 
 { 
     public float PriceTotal { get { return _items.Select(i => i.PriceTotal).Sum(); } }
-
     private List<Item> _items = new List<Item>();
     public int Size { get { return _items.Count; } }
     public void AddItem(Item item) => _items.Add(item);
     public void RemoveItem(int index) => _items.RemoveAt(index);
+
+    private const string _indexTitle = "Item Index";
+    private const string _nameTitle = "Item Name";
+    private const string _quantTitle = "Quantity";
+    private const string _unitTitle = "Unit Price";
+    private const string _totalTitle = "Item Total";
+    private const string _invoiceTotalTitle = "Invoice Total";
+
     public override string ToString()
     {
         var builder = new StringBuilder();
         float total = 0;
-        builder.AppendLine("------------------------------");
-        builder.AppendLine($"{"Item Index"}\t{"Item Name"}\t{"Quantity"}\t{"Unit Price"}\t{"Item Total"}");
-        builder.AppendLine("------------------------------");
+
+        ColumnDefinition indexDef = new ColumnDefinition(Math.Max(_indexTitle.Length, _invoiceTotalTitle.Length), "left");
+        ColumnDefinition nameDef = new ColumnDefinition(Math.Max(_items.Select(i => i.Name.Length).Max(), _nameTitle.Length), "left");
+        ColumnDefinition quantityDef = new ColumnDefinition(_quantTitle.Length, "left");
+        ColumnDefinition unitDef = new ColumnDefinition(_unitTitle.Length, "left");
+        ColumnDefinition totalDef = new ColumnDefinition(_totalTitle.Length, "left");
+
+        Columns cols = new Columns(new List<ColumnDefinition>() { indexDef, nameDef, quantityDef, unitDef, totalDef });
+
+        string dashedLine = FormattingUtils.GetDashedLine(cols.GetTotalSize());
+
+        builder.AppendLine(dashedLine);
+        builder.AppendLine(
+            FormattingUtils.FormatLine(new List<string>() { _indexTitle, _nameTitle, _quantTitle, _unitTitle, _totalTitle }, cols)
+        );
+        builder.AppendLine(dashedLine);
+
         for (int i = 0; i < _items.Count; i++)
         {
             total += _items[i].PriceTotal;
-            builder.AppendLine($"[{i + 1}] " + _items[i].ToString());
+            builder.AppendLine(
+                FormattingUtils.FormatLine(new List<string>() { $"[{i + 1}]", _items[i].Name, $"{_items[i].Quantity}", $"{_items[i].UnitPrice:0.00}", $"{_items[i].PriceTotal:0.00}" }, cols)
+            );
         }
-        builder.AppendLine("------------------------------");
-        builder.AppendLine($"Invoice Total\t{total}");
-        builder.AppendLine("------------------------------");
+
+        builder.AppendLine(dashedLine);
+        builder.AppendLine(
+            FormattingUtils.FormatLine(new List<string>() { _invoiceTotalTitle, "", "", "", $"{total:0.00}" }, cols)
+        );
+        builder.AppendLine(dashedLine);
 
         return builder.ToString();
     }
@@ -335,11 +363,6 @@ public class Item
     public int Quantity { get; set; }
     public float UnitPrice { get; set; }
     public float PriceTotal { get { return Quantity * UnitPrice; } }
-
-    public override string ToString()
-    {
-        return $"{Name}\t {Quantity}\t {UnitPrice}\t {PriceTotal}";
-    }
 }
 
 
